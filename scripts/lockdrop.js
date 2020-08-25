@@ -104,21 +104,26 @@ async function lock(lockdropContractAddress, length, value, edgewarePublicKey, i
   console.log(`locking ${value} ether into Lockdrop contract for ${length} months. Receiver: ${edgewarePublicKey}, Validator: ${isValidator}`);
   console.log(`Contract ${lockdropContractAddress}`);
   const web3 = getWeb3(remoteUrl);
+  const balance = await web3.eth.getBalance('0x6Be02d1d3665660d22FF9624b7BE0551ee1Ac91b');
+  console.log(balance);
   const contract = new web3.eth.Contract(LOCKDROP_JSON.abi, lockdropContractAddress);
   // Format lock length values as their respective enum values for the lockdrop contract
   let lockLength = (length == "3") ? 0 : (length == "6") ? 1 : 2;
   // Grab account's transaction nonce for tx params
-  let txNonce = await web3.eth.getTransactionCount(web3.currentProvider.addresses[0]);
+  let txNonce = await web3.eth.getTransactionCount('0x6Be02d1d3665660d22FF9624b7BE0551ee1Ac91b');
   // Convert ETH value submitted into WEI
   value = web3.utils.toWei(value, 'ether');
   // Create tx params for lock function
   const tx = new EthereumTx({
     nonce: txNonce,
-    from: web3.currentProvider.addresses[0],
+    from: '0x6Be02d1d3665660d22FF9624b7BE0551ee1Ac91b',
     to: lockdropContractAddress,
-    gas: 150000,
+    gas: 1500000,
+    // gasLimit: 1000000,
+    gasPrice: 1000000000,
     data: contract.methods.lock(lockLength, edgewarePublicKey, isValidator).encodeABI(),
     value: toBN(value),
+    chainId: 42,
   });
   try {
     // Sign the tx and send it
@@ -126,6 +131,9 @@ async function lock(lockdropContractAddress, length, value, edgewarePublicKey, i
     var raw = '0x' + tx.serialize().toString('hex');
     const txReceipt = await web3.eth.sendSignedTransaction(raw);
     console.log(`Transaction hash: ${txReceipt.transactionHash}`);
+    const balance1 = await web3.eth.getBalance('0x6Be02d1d3665660d22FF9624b7BE0551ee1Ac91b');
+    const diff = balance - balance1;
+    console.log(diff);
   } catch (e) {
     console.log(e);
   }
@@ -154,14 +162,15 @@ async function unlock(lockContractAddress, remoteUrl=LOCALHOST_URL, nonce=undefi
   try {
     // Grab account's transaction nonce for tx params if nonce is not provided
     if (!nonce) {
-      nonce = await web3.eth.getTransactionCount(web3.currentProvider.addresses[0]);
+      nonce = await web3.eth.getTransactionCount('0x6Be02d1d3665660d22FF9624b7BE0551ee1Ac91b');
     }
     // Create generic send transaction to unlock from the lock contract
     const tx = new EthereumTx({
       nonce: nonce,
-      from: web3.currentProvider.addresses[0],
+      from: '0x6Be02d1d3665660d22FF9624b7BE0551ee1Ac91b',
       to: lockContractAddress,
       gas: 100000,
+      chainId: 42,
     });
     // Sign the tx and send it
     tx.sign(Buffer.from(ETH_PRIVATE_KEY, 'hex'));
@@ -194,7 +203,9 @@ async function getBalance(lockdropContractAddress, remoteUrl=LOCALHOST_URL) {
   const web3 = getWeb3(remoteUrl);
   const contract = new web3.eth.Contract(LOCKDROP_JSON.abi, lockdropContractAddress);
   let { totalETHLocked, totalEffectiveETHLocked } = await ldHelpers.getTotalLockedBalance(contract);
-  let { totalETHSignaled, totalEffectiveETHSignaled } = await ldHelpers.getTotalSignaledBalance(web3, contract);
+  // let { totalETHSignaled, totalEffectiveETHSignaled } = await ldHelpers.getTotalSignaledBalance(web3, contract);
+  const totalETHSignaled = 0;
+  const totalEffectiveETHSignaled = 0;
   return { totalETHLocked, totalEffectiveETHLocked, totalETHSignaled, totalEffectiveETHSignaled };
 };
 
@@ -237,7 +248,7 @@ async function getNonceForContract(lockdropContractAddress, remoteUrl=LOCALHOST_
 async function sendTransaction(address, remoteUrl=LOCALHOST_URL) {
   const web3 = getWeb3(remoteUrl);
   const params = {
-    from: web3.currentProvider.addresses[0],
+    from: '0x57d213d0927ccc7596044c6ba013dd05522aacba',
     to: address,
     value: web3.utils.toWei('0.1', 'ether'),
   };

@@ -32,12 +32,23 @@ function getEffectiveValue(ethAmount, term, lockTime, lockStart, totalETH) {
 }
 
 const getLocks = async (lockdropContract, address) => {
-  return await lockdropContract.getPastEvents('Locked', {
+  // let events = await lockdropContract.events.allEvents();
+  // console.log(events);
+  // return events;
+  console.log(address);
+
+  await lockdropContract.getPastEvents('Locked', 
+  {
     fromBlock: 0,
     toBlock: 'latest',
     filter: {
+    //   edgewareAddr: 0xa469e40f0a073be5b28e2df6e746ce6519260cdd764bc5f6b3fb3aac5cda3c35,
+    //   // // transacationHash: 0x2d0120f7efc7d594e738cf68013d2c8d8b6bee3d92d69a8f58f30fe5186daa56,
       owner: address,
     }
+  }).then((events) => {
+    console.log(events);
+    return events;
   });
 };
 
@@ -61,28 +72,26 @@ const getTotalSignaledBalance = async (web3, lockdropContract) => {
   return { totalETHSignaled, totalEffectiveETHSignaled };
 };
 
-const calculateEffectiveLocks = async (lockdropContracts) => {
+const calculateEffectiveLocks = async (lockdropContract) => {
   let totalETHLocked = toBN(0);
   let totalEffectiveETHLocked = toBN(0);
   const locks = {};
   const validatingLocks = {};
 
   let lockEvents = []
-  for (index in lockdropContracts) {
-    let events = await lockdropContracts[index].getPastEvents('Locked', {
-      fromBlock: 0,
-      toBlock: 'latest',
-    });
+  let events = await lockdropContract.getPastEvents('Locked', {
+    fromBlock: 0,
+    toBlock: 'latest',
+  });
 
-    lockEvents = [ ...lockEvents, ...events ];
-  }
+  lockEvents = [ ...lockEvents, ...events ];
 
   // For truffle tests
   let lockdropStartTime;
-  if (typeof lockdropContracts[0].LOCK_START_TIME === 'function') {
-    lockdropStartTime = (await lockdropContracts[0].LOCK_START_TIME());
+  if (typeof lockdropContract.LOCK_START_TIME === 'function') {
+    lockdropStartTime = (await lockdropContract.LOCK_START_TIME());
   } else {
-    lockdropStartTime = (await lockdropContracts[0].methods.LOCK_START_TIME().call());
+    lockdropStartTime = (await lockdropContract.methods.LOCK_START_TIME().call());
   }
 
   lockEvents.forEach((event) => {
