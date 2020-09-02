@@ -53,7 +53,7 @@ contract Lockdrop {
     function lock(Term term, bytes calldata edgewareAddr, bool isValidator)
         external
         payable
-        didStart
+        // didStart
         didNotEnd
     {
         uint256 eth = msg.value;
